@@ -1,0 +1,32 @@
+# Rengmitca IPA Transcription Pipeline — dependencies
+#
+# Install with:  pip install -r requirements.txt
+#
+# For GPU acceleration (NVIDIA CUDA), install PyTorch with CUDA support:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+#   (adjust 'cu118' to your CUDA version; see https://pytorch.org for details)
+#
+# Otherwise, the pipeline will run on CPU.
+
+# Deep learning
+torch>=2.8.0
+torchaudio>=2.0.0
+transformers>=5.0.0
+
+# Speaker diarization
+pyannote.audio>=3.0.0
+
+# Audio I/O
+soundfile>=0.12.0
+librosa>=0.10.0
+sounddevice>=0.4.0
+
+# TextGrid
+praatio>=6.0.0
+
+# Data handling
+pandas>=2.0.0
+
+# Misc
+numpy>=1.24.0
+matplotlib>=3.8.0

@@ -1,0 +1,8 @@
+I want you to look everything that is in this file, I then want you to upload all of this to my GitHub under the title Rengmitca IPA.
+I want you to look at the other ipa-transcribers that I have made, such as "C:\Users\pablo\OneDrive\Desktop\Functions\ipa-transcriber(1)", "C:\Users\pablo\OneDrive\Desktop\Functions\ipa-transcriber(2)" and "C:\Users\pablo\OneDrive\Desktop\Functions\yonghe-qian_01".
+I have backed up what I have here, so you are free to completely change everything within this folder, including the pipeline, for if I want to go back, I always have the backup save where we can read from.
+I really like what we did in the Yonghe Qiang model with the diarization and aligning, however, I still want a review section, where all outcomes with a certain level of confidence are reviewed, as to how we review them, I am thinking you make something that is accessible through html, and for the likes of the vowels, we have spectrogram, zoomed in so that we can see the pitch contour, helping us decide what type of tone it is (or if really there are any at all).
+I have a have both a HuggingFace and GitHub token which can be got through os.getenv(HF_TOKEN) and os.getenv(GH_TOKEN) respectively.
+Additionally, I would like you to create a CHANGELOG.md file and add all the changes that we do, and document everything for future analysis.
+Continue using Wav2Vecc2.
+I want you to add another output called "consonant&vowel&tones-inventory" where we can see all the consonants and vowels present in the recording
