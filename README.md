@@ -55,7 +55,7 @@ Mizo phones with no exact match are substituted using the nearest Rengmitca phon
 ### 1. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+   pip install -r requirements.txt
 ```
 
 ### 2. Get a HuggingFace token
@@ -78,6 +78,8 @@ export HF_TOKEN=hf_your_token_here  # macOS/Linux
 ```
 
 > **Note:** The MMS ASR model (~4 GB) and diarization model (~1 GB) are downloaded automatically on first run.
+
+> **Note:** Some `.wav` files use compressed or non-PCM codecs that `soundfile` cannot read directly. If `ffmpeg` is installed, the pipeline now auto-converts those files to standard PCM WAV before processing.
 
 ### 3. (Optional) Enable GPU acceleration
 

@@ -14,6 +14,9 @@ Results are written to the output directory (default: ./output/):
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
+import subprocess
 import sys
 import warnings
 from pathlib import Path
@@ -37,6 +40,80 @@ from pipeline.output import append_to_csv, write_textgrid, write_phonemes_csv, w
 from pipeline.tone import estimate_segment_tone
 
 
+def resolve_ffmpeg() -> str | None:
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg:
+        return ffmpeg
+
+    candidate_roots = [
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Packages",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs",
+        Path("C:/Program Files"),
+        Path("C:/Program Files (x86)"),
+    ]
+
+    for root in candidate_roots:
+        if not root.exists():
+            continue
+        matches = sorted(root.glob("**/ffmpeg.exe"))
+        if matches:
+            return str(matches[0])
+
+    return None
+
+
+def is_git_lfs_pointer(file_path: Path) -> bool:
+    try:
+        with file_path.open("rb") as handle:
+            return handle.read(128).startswith(b"version https://git-lfs.github.com/spec/v1\n")
+    except OSError:
+        return False
+
+
+def ensure_readable_wav(wav_path: Path) -> Path:
+    if is_git_lfs_pointer(wav_path):
+        raise RuntimeError(
+            f"{wav_path.name} is a Git LFS pointer, not real audio. "
+            "Run 'git lfs pull --include=\"audio/*\"' to download the actual recording."
+        )
+
+    try:
+        sf.info(str(wav_path))
+        return wav_path
+    except Exception:
+        ffmpeg = resolve_ffmpeg()
+        if not ffmpeg:
+            raise RuntimeError(
+                f"Unsupported WAV codec for {wav_path.name}. "
+                "Install ffmpeg or convert the file to PCM16 WAV."
+            )
+
+        fixed_path = wav_path.with_name(f"{wav_path.stem}_pcm16.wav")
+        proc = subprocess.run(
+            [
+                ffmpeg,
+                "-y",
+                "-i",
+                str(wav_path),
+                "-ac",
+                "1",
+                "-ar",
+                str(config.TARGET_SAMPLE_RATE),
+                "-c:a",
+                "pcm_s16le",
+                str(fixed_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"ffmpeg conversion failed for {wav_path.name}: {proc.stderr.strip()}")
+
+        sf.info(str(fixed_path))
+        print(f"  Converted unsupported WAV -> {fixed_path.name}")
+        return fixed_path
+
+
 def process_file(
     wav_path: Path,
     output_dir: Path,
@@ -45,7 +122,10 @@ def process_file(
     phonemes_csv: Path,
     words_csv: Path,
 ) -> None:
-    print(f"\n── {wav_path.name} ──")
+    print(f"\n-- {wav_path.name} --")
+
+    original_wav_path = wav_path
+    wav_path = ensure_readable_wav(wav_path)
 
     # Audio duration (needed for TextGrid maxT)
     info = sf.info(str(wav_path))
@@ -55,7 +135,7 @@ def process_file(
     audio = load_audio(wav_path, target_sr=config.TARGET_SAMPLE_RATE)
 
     # Diarization
-    print("  Diarizing …")
+    print("  Diarizing ...")
     try:
         segments = diarize(
             wav_path,
@@ -96,7 +176,7 @@ def process_file(
         combined_conf = round(asr.confidence * (1.0 - mapping.flagged_fraction), 4)
 
         row = {
-            "filename":         wav_path.name,
+            "filename":         original_wav_path.name,
             "speaker":          seg.speaker,
             "start":            seg.start,
             "end":              seg.end,
@@ -117,7 +197,7 @@ def process_file(
             aligned_words = process_word_alignment(asr.words)
             for aw in aligned_words:
                 word_rows.append({
-                    "filename": wav_path.name,
+                    "filename": original_wav_path.name,
                     "speaker": seg.speaker,
                     "start": aw.start,
                     "end": aw.end,
@@ -138,7 +218,7 @@ def process_file(
                 ]
                 for phone_token in word_phonemes:
                     phoneme_rows.append({
-                        "filename": wav_path.name,
+                        "filename": original_wav_path.name,
                         "speaker": seg.speaker,
                         "start": phone_token.start,
                         "end": phone_token.end,
@@ -152,7 +232,7 @@ def process_file(
         )
 
     # Write TextGrid with word and phoneme tiers
-    tg_path = output_dir / f"{wav_path.stem}.TextGrid"
+    tg_path = output_dir / f"{original_wav_path.stem}.TextGrid"
     write_textgrid(
         result_rows,
         duration,
@@ -190,7 +270,7 @@ def main() -> None:
 
     # Check for required dependencies
     if not TORCH_AVAILABLE:
-        print("\n❌ ERROR: PyTorch is not installed.")
+        print("\n[ERROR] PyTorch is not installed.")
         print("   This pipeline requires PyTorch to function.")
         print("\n   To install PyTorch and all dependencies, run:")
         print("   pip install -r requirements.txt")
@@ -201,10 +281,10 @@ def main() -> None:
     # Detect GPU
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cuda":
-        print(f"🚀 GPU detected: {torch.cuda.get_device_name(0)}")
+        print(f"[GPU] Detected: {torch.cuda.get_device_name(0)}")
         print(f"   CUDA version: {torch.version.cuda}")
     else:
-        print("⚠️  No GPU detected. Running on CPU.")
+        print("[WARN] No GPU detected. Running on CPU.")
 
     wav_files = sorted(audio_dir.glob("*.wav"))
     if not wav_files:
@@ -222,18 +302,18 @@ def main() -> None:
     phonemes_csv.unlink(missing_ok=True)
     words_csv.unlink(missing_ok=True)
 
-    print(f"Found {len(wav_files)} file(s). Starting pipeline …")
+    print(f"Found {len(wav_files)} file(s). Starting pipeline ...")
     print(f"  ASR model : {config.MMS_MODEL_ID} (lang={config.MMS_LANGUAGE})")
     print(f"  Diarization: {config.DIARIZATION_MODEL_ID}")
     print(f"  Device: {device.upper()}")
     if not config.HF_TOKEN:
         print(
-            "\n  ⚠  HF_TOKEN is not set. Diarization will fail unless you set it in\n"
+            "\n  [WARN] HF_TOKEN is not set. Diarization will fail unless you set it in\n"
             "     config.py or via the HF_TOKEN environment variable.\n"
             "     Get a free token at https://hf.co/settings/tokens\n"
         )
     else:
-        print(f"  ✓ HF_TOKEN found (hf_...{config.HF_TOKEN[-8:]})")
+        print(f"  [OK] HF_TOKEN found (hf_...{config.HF_TOKEN[-8:]})")
 
     for wav_path in wav_files:
         process_file(wav_path, output_dir, results_csv, flagged_csv, phonemes_csv, words_csv)

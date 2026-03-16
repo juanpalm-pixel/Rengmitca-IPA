@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import soundfile as sf
 
 
 @dataclass
@@ -30,12 +31,15 @@ def _load_pipeline(model_id: str, hf_token: str | None):
     """Lazy-load the pyannote diarization pipeline (heavy, load once)."""
     global _pipeline
     if _pipeline is None:
+        import torch
         from pyannote.audio import Pipeline
         import config
+
+        device = torch.device(config.DEVICE)
         print(f"[diarize] Loading {model_id} …")
-        print(f"[diarize] Using device: {config.DEVICE}")
+        print(f"[diarize] Using device: {device}")
         _pipeline = Pipeline.from_pretrained(model_id, token=hf_token)
-        _pipeline = _pipeline.to(config.DEVICE)  # Move pipeline to GPU or CPU
+        _pipeline = _pipeline.to(device)
         print("[diarize] Pipeline ready.")
     return _pipeline
 
@@ -60,8 +64,16 @@ def diarize(
     -------
     List of DiarizedSegment sorted by start time.
     """
+    import torch
+
     pipe = _load_pipeline(model_id, hf_token)
-    diarization = pipe(str(wav_path))
+    waveform, sample_rate = sf.read(str(wav_path), dtype="float32", always_2d=True)
+    diarization = pipe(
+        {
+            "waveform": torch.from_numpy(np.ascontiguousarray(waveform.T)),
+            "sample_rate": sample_rate,
+        }
+    )
 
     segments: list[DiarizedSegment] = []
     for turn, _, speaker in diarization.itertracks(yield_label=True):
