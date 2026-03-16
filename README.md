@@ -211,7 +211,7 @@ ipa-transcriber/
 
 ---
 
-## Publish to GitHub (public repo `Rengmitca IPA`)
+## Publish to GitHub (public repo `Rengmitca-IPA`)
 
 Set your token:
 
@@ -222,7 +222,7 @@ set GH_TOKEN=ghp_your_token_here
 Run:
 
 ```bash
-python publish_github.py --repo "Rengmitca IPA" --visibility public
+python publish_github.py --repo "Rengmitca-IPA" --visibility public
 ```
 
 ---

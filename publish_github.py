@@ -19,7 +19,7 @@ def run_capture(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create/push GitHub repository for this project")
-    parser.add_argument("--repo", default="Rengmitca IPA", help="Repository name")
+    parser.add_argument("--repo", default="Rengmitca-IPA", help="Repository name (GitHub slug)")
     parser.add_argument("--visibility", choices=["public", "private"], default="public")
     parser.add_argument("--branch", default="main")
     args = parser.parse_args()
@@ -62,11 +62,12 @@ def main() -> None:
         if "nothing to commit" not in commit_text:
             raise RuntimeError(f"git commit failed:\n{commit.stderr.strip()}")
 
+    repo_slug = args.repo.replace(" ", "-")
     visibility_flag = "--public" if args.visibility == "public" else "--private"
     remote = run_capture(["git", "remote", "get-url", "origin"], cwd=repo_dir)
     if remote.returncode != 0:
         create = run_capture(
-            ["gh", "repo", "create", args.repo, visibility_flag, "--source", ".", "--remote", "origin"],
+            ["gh", "repo", "create", repo_slug, visibility_flag, "--source", ".", "--remote", "origin"],
             cwd=repo_dir,
         )
         if create.returncode != 0 and "already exists" not in (create.stdout + create.stderr).lower():
@@ -78,11 +79,11 @@ def main() -> None:
             owner = run_capture(["gh", "api", "user", "-q", ".login"], cwd=repo_dir)
             if owner.returncode != 0:
                 raise RuntimeError(f"Could not determine GitHub username:\n{owner.stderr.strip()}")
-            repo_url = f"https://github.com/{owner.stdout.strip()}/{args.repo}.git"
+            repo_url = f"https://github.com/{owner.stdout.strip()}/{repo_slug}.git"
             run(["git", "remote", "add", "origin", repo_url], cwd=repo_dir)
 
     run(["git", "push", "-u", "origin", args.branch], cwd=repo_dir)
-    print(f"Pushed to GitHub repo: {args.repo}")
+    print(f"Pushed to GitHub repo: {repo_slug}")
 
 
 if __name__ == "__main__":
