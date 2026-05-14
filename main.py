@@ -295,7 +295,10 @@ def main() -> None:
     else:
         print("[WARN] No GPU detected. Running on CPU.")
 
-    wav_files = sorted(audio_dir.glob("*.wav"))
+    wav_files = sorted(
+        path for path in audio_dir.iterdir()
+        if path.is_file() and path.suffix.lower() == ".wav"
+    )
     if not wav_files:
         if not audio_dir.exists():
             print(f"No audio folder found at '{audio_dir}'.")
