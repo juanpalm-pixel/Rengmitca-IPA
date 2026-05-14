@@ -57,7 +57,7 @@ Mizo phones with no exact match are substituted using the nearest Rengmitca phon
 Preferred conda setup:
 
 ```bash
-conda env create -f environment.yml
+conda create -n rengmitca-ipa -f environment.yml
 conda activate rengmitca-ipa
 ```
 
