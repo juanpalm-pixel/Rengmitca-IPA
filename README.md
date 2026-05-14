@@ -213,22 +213,6 @@ ipa-transcriber/
 
 ---
 
-## Publish to GitHub (public repo `Rengmitca-IPA`)
-
-Set your token:
-
-```bash
-set GH_TOKEN=ghp_your_token_here
-```
-
-Run:
-
-```bash
-python publish_github.py --repo "Rengmitca-IPA" --visibility public
-```
-
----
-
 ## Limitations
 
 - **No Rengmitca-specific model exists.** The Mizo ASR model is an approximation — accuracy will be imperfect, especially for phones unique to Rengmitca (æ, ɘ, ɣ, sʰ). These will typically be flagged for review.
