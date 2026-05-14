@@ -54,8 +54,17 @@ Mizo phones with no exact match are substituted using the nearest Rengmitca phon
 
 ### 1. Install dependencies
 
+Preferred conda setup:
+
 ```bash
-   pip install -r requirements.txt
+conda env create -f environment.yml
+conda activate rengmitca-ipa
+```
+
+If you are using pip only:
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### 2. Get a HuggingFace token
@@ -86,8 +95,14 @@ export HF_TOKEN=hf_your_token_here  # macOS/Linux
 The pipeline detects CUDA availability and automatically uses GPU if available, otherwise falls back to CPU.
 
 To enable GPU:
-- **NVIDIA GPUs with CUDA:** Install PyTorch with CUDA support: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118` (adjust `cu118` for your CUDA version)
-- **Other GPUs:** Consult PyTorch documentation for your hardware
+- **NVIDIA GPUs with CUDA:** Use the provided conda environment, which installs PyTorch with CUDA 12.4 support through `pytorch-cuda`.
+- **Verify the GPU runtime:**
+
+```bash
+python -c "import torch; print(torch.cuda.is_available()); print(torch.version.cuda); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
+```
+
+- **Other GPUs:** Consult the PyTorch installation guide for your hardware.
 
 If GPU is unavailable, the pipeline runs on CPU (slower but still functional).
 
@@ -106,9 +121,9 @@ Place all `.wav` files in the `audio/` folder.
 python main.py
 ```
 
-Or if using the conda environment directly:
+If you are using the conda environment, activate it first and then run:
 ```bash
-python ".\miniconda3\envs\ipa-transcriber-3\python.exe" main.py
+python main.py
 ```
 
 Optional arguments:
