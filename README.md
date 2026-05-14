@@ -101,12 +101,6 @@ Place all `.wav` files in the `audio/` folder.
 
 ### Step 2 — Run the pipeline
 
-**Easy method (Windows):**
-```bash
-run.bat
-```
-This automatically uses the correct Python environment.
-
 **Manual method:**
 ```bash
 python main.py
