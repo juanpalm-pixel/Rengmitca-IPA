@@ -114,7 +114,7 @@ python main.py
 
 Or if using the conda environment directly:
 ```bash
-C:\Users\pablo\miniconda3\envs\ipa-transcriber-3\python.exe main.py
+python ".\miniconda3\envs\ipa-transcriber-3\python.exe" main.py
 ```
 
 Optional arguments:
