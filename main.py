@@ -39,6 +39,15 @@ from pipeline.phoneme_map import text_to_rengmitca_ipa
 from pipeline.output import append_to_csv, write_textgrid, write_phonemes_csv, write_words_csv, write_inventory_csv
 from pipeline.tone import estimate_segment_tone
 
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+
+def resolve_project_path(path_text: str) -> Path:
+    path = Path(path_text)
+    if path.is_absolute():
+        return path
+    return (PROJECT_ROOT / path).resolve()
+
 
 def resolve_ffmpeg() -> str | None:
     ffmpeg = shutil.which("ffmpeg")
@@ -264,8 +273,8 @@ def main() -> None:
     parser.add_argument("--output-dir", default=str(config.OUTPUT_DIR), help="Output directory")
     args = parser.parse_args()
 
-    audio_dir  = Path(args.audio_dir)
-    output_dir = Path(args.output_dir)
+    audio_dir  = resolve_project_path(args.audio_dir)
+    output_dir = resolve_project_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Check for required dependencies
@@ -288,6 +297,10 @@ def main() -> None:
 
     wav_files = sorted(audio_dir.glob("*.wav"))
     if not wav_files:
+        if not audio_dir.exists():
+            print(f"No audio folder found at '{audio_dir}'.")
+            print("Create the folder there or pass --audio-dir with the correct path.")
+            sys.exit(1)
         print(f"No .wav files found in '{audio_dir}'. Place your recordings there and re-run.")
         sys.exit(0)
 

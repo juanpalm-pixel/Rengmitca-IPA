@@ -6,6 +6,8 @@ Edit these settings before running main.py.
 import os
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent
+
 # ---------------------------------------------------------------------------
 # Device (GPU/CPU)
 # ---------------------------------------------------------------------------
@@ -21,8 +23,8 @@ except (ImportError, RuntimeError):
 # ---------------------------------------------------------------------------
 # Directories
 # ---------------------------------------------------------------------------
-INPUT_DIR = Path("audio")      # Place .wav files here before running
-OUTPUT_DIR = Path("output")    # TextGrids, CSVs, and flagged.csv written here
+INPUT_DIR = PROJECT_ROOT / "audio"      # Place .wav files here before running
+OUTPUT_DIR = PROJECT_ROOT / "output"    # TextGrids, CSVs, and flagged.csv written here
 
 # ---------------------------------------------------------------------------
 # ASR model  (Meta MMS — XLS-R architecture with Mizo language adapter)
