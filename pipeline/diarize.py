@@ -31,6 +31,7 @@ def _load_pipeline(model_id: str, hf_token: str | None):
     """Lazy-load the pyannote diarization pipeline (heavy, load once)."""
     global _pipeline
     if _pipeline is None:
+        import os
         import torch
         from pyannote.audio import Pipeline
         import config
@@ -38,7 +39,47 @@ def _load_pipeline(model_id: str, hf_token: str | None):
         device = torch.device(config.DEVICE)
         print(f"[diarize] Loading {model_id} …")
         print(f"[diarize] Using device: {device}")
-        _pipeline = Pipeline.from_pretrained(model_id, token=hf_token)
+        if hf_token:
+            # Ensure downstream pyannote/speechbrain downloads see the token.
+            os.environ["HF_TOKEN"] = hf_token
+            os.environ["HUGGING_FACE_HUB_TOKEN"] = hf_token
+            os.environ["HUGGINGFACE_HUB_TOKEN"] = hf_token
+            try:
+                from huggingface_hub import login
+
+                login(token=hf_token, add_to_git_credential=False, skip_if_logged_in=True)
+            except Exception:
+                pass
+
+        # PyTorch 2.6+ defaults torch.load(weights_only=True). pyannote/lightning
+        # checkpoints include richer objects and require classic loading behavior.
+        os.environ.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+
+        # PyTorch 2.6+ defaults torch.load(weights_only=True), which can reject
+        # older checkpoint metadata classes used by pyannote/lightning artifacts.
+        try:
+            from torch.serialization import add_safe_globals
+            from torch.torch_version import TorchVersion
+
+            add_safe_globals([TorchVersion])
+        except Exception:
+            pass
+        # pyannote/huggingface auth kwarg changed from use_auth_token -> token.
+        try:
+            _pipeline = Pipeline.from_pretrained(model_id, token=hf_token)
+        except TypeError:
+            try:
+                _pipeline = Pipeline.from_pretrained(model_id, use_auth_token=hf_token)
+            except Exception as exc:
+                raise RuntimeError(
+                    "Failed to load diarization pipeline: "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
+        except Exception as exc:
+            raise RuntimeError(
+                "Failed to load diarization pipeline: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         _pipeline = _pipeline.to(device)
         print("[diarize] Pipeline ready.")
     return _pipeline
